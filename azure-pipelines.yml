@@ -6,9 +6,6 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: CredScan@2
-  inputs:
-    toolMajorVersion: 'V2'
 - task: ESLint@1
   inputs:
     Configuration: 'recommended'
