@@ -4,7 +4,7 @@
 import fs from 'fs';
 import * as jose from 'jose';
 import {generateIssuerKeys, generateIssuerKeysFiles} from '../src/generate-issuer-keys';
-import {issueQr, issueQrFiles} from '../src/issue-qr';
+import {issueQrAsBuffer, issueQrAsDataUrl, issueQrFiles} from '../src/issue-qr';
 import {verifyQr, verifyQrFiles} from '../src/verify-qr';
 
 test("Generate issuer keys", async () => {
@@ -21,7 +21,7 @@ test("Generate issuer keys -- file API", async () => {
     expect(fs.existsSync(jwksPath)).toBeTruthy();
 });
 
-test("Issue QR", async () => {
+test("Issue QR as Buffer", async () => {
     const privateString = fs.readFileSync('tests/test_private.json', 'utf8');
     const jwkJson = JSON.parse(privateString) as jose.JWK;
 
@@ -30,7 +30,20 @@ test("Issue QR", async () => {
     const jwt = JSON.parse(jwtString);
 
     // issue and write-out QR code
-    const qr = await issueQr(jwkJson, jwt);
+    const qr = await issueQrAsBuffer(jwkJson, jwt);
+    expect(qr).toBeDefined();
+});
+
+test("Issue QR as Data URL", async () => {
+    const privateString = fs.readFileSync('tests/test_private.json', 'utf8');
+    const jwkJson = JSON.parse(privateString) as jose.JWK;
+
+    // read the JWT payload
+    const jwtString = fs.readFileSync('tests/test_jwt.json', 'utf8');
+    const jwt = JSON.parse(jwtString);
+
+    // issue and write-out QR code
+    const qr = await issueQrAsDataUrl(jwkJson, jwt);
     expect(qr).toBeDefined();
 });
 

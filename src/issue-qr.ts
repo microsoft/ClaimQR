@@ -19,7 +19,7 @@ const toNumericQr = (jws: string): QRCodeSegment[] => [
   },
 ];
 
-export const issueQr = async (jwkJson: jose.JWK, jwt: any): Promise<Buffer> => {
+const issueQrAsText = async (jwkJson: jose.JWK, jwt: any): Promise<QRCodeSegment[]> => {
     try {
         const bodyString = JSON.stringify(jwt); // needed?
         const payload = pako.deflateRaw(bodyString);
@@ -36,12 +36,22 @@ export const issueQr = async (jwkJson: jose.JWK, jwt: any): Promise<Buffer> => {
 
         const numericQR = toNumericQr(jws);
 
-        const qr = await QrCode.toBuffer(numericQR, {type: 'png', errorCorrectionLevel: 'low'});
-
-        return qr;
+        return numericQR;
     } catch (err) {
         throw new Error(`Can't issue QR code: ${err as string}`);
     }
+}
+
+export const issueQrAsBuffer = async (jwkJson: jose.JWK, jwt: any): Promise<Buffer> => {
+    const numericQR = await issueQrAsText(jwkJson, jwt);
+    const qr = await QrCode.toBuffer(numericQR, {type: 'png', errorCorrectionLevel: 'low'});
+    return qr;
+}
+
+export const issueQrAsDataUrl = async (jwkJson: jose.JWK, jwt: any): Promise<string> => {
+    const numericQR = await issueQrAsText(jwkJson, jwt);
+    const qr = await QrCode.toDataURL(numericQR, { errorCorrectionLevel: 'low' });
+    return qr;
 }
 
 export const issueQrFiles = async (privatePath: string, jwtPath: string, qrPath: string): Promise<void> => {
@@ -63,7 +73,7 @@ export const issueQrFiles = async (privatePath: string, jwtPath: string, qrPath:
     const jwt = JSON.parse(jwtString);
 
     // issue and write-out QR code
-    const qr = await issueQr(jwkJson, jwt);
+    const qr = await issueQrAsBuffer(jwkJson, jwt);
     fs.writeFileSync(qrPath, qr);
     console.log(`QR code written to ${qrPath}`);
 }
