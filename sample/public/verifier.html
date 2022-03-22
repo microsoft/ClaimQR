@@ -1,0 +1,100 @@
+<html>
+    <head>
+        <title>Claim QR Verifier Sample</title>
+        <script src="utils.js"></script>
+        <script src="jsQR.js"></script>
+        <script src="qrscanner.js"></script>  
+    </head>
+    <body>
+        <h1>Claim QR Verifier Sample</h1>
+        <p>
+            Verifies Claim QR and extract the encoded JSON Web Token.
+        </p>
+        <button type="button" onclick="scanQrCodes()">Scan QR</button>
+        <p>or paste QR text</p>
+        <textarea id="qrtext" name="qrtext" rows="10" cols="75"></textarea>
+        <p>Optionally, paste the verifier JSON Web Key Set (JWKS) (otherwise it will be retrieved online)</p>
+        <textarea id="jwks" name="jwks" rows="10" cols="75"></textarea>
+        <p>
+        <button type="button" onclick="verifyQr()">Verify QR</button>
+        </p>
+        <p>Output: encoded JSON Web Token (JWT)</p>
+        <textarea id="jwt" name="jwt" rows="1" cols="75" readonly="true"></textarea>
+        
+        <div id="CenterDIV">
+            <div class="divFloat" style="text-align: center;">
+                <div id="container" style="position:relative;">
+                    <video id='vid'></video>
+                </div>
+                <input type="button" id='buttonCloseVideo' value="Close" />
+            </div>
+        </div>
+
+        <script>
+            async function verifyQr() {
+                const qrtext = document.getElementById('qrtext').value;
+                let jwks;
+                const jwksValue = document.getElementById('jwks').value;
+                if (jwksValue) { jwks = JSON.parse(jwksValue); }
+                const result = await restCall('/verify-qr', { "qr": qrtext, "jwks": jwks }, 'POST');
+                console.log(result);
+                const jwtString = JSON.stringify(result.jwt, null, 2);
+                const jwtElement = document.getElementById('jwt'); 
+                jwtElement.rows = (jwtString.match(/\n/g) || []).length + 2;
+                jwtElement.value = jwtString;
+            }
+
+            //
+            // Opens the scanner UI and scan QR codes
+            //
+            async function scanQrCodes() {
+
+                // reveal the qr scanner ui
+                const qrScanDiv = document.getElementById('CenterDIV');
+                qrScanDiv.style.display = 'block';
+                let scannedQr;
+
+                while (true) {
+
+                    const scanResult = await qrScanner.scan();
+                    console.log(scanResult); // TODO: delete
+                    // if the scanner returns an error
+                    if (scanResult?.error) {
+                        alert(`Camera Error '${scanResult.error}'`);
+                        break;
+                    };
+
+                    // if the scanner was closed by the user
+                    if (scanResult?.state === 'stopped') break;
+
+                    // sometimes the scanner returns without data, try again
+                    if (!scanResult.data) {
+                        continue;
+                    } else {
+                        scannedQr = scanResult.data;
+                        break;
+                    }
+
+                    // // if we have all parts, exit the scan loop
+                    // if (!scannedParts.includes(undefined)) break;
+
+                }
+
+                // close the scanner ui
+                qrScanDiv.style.display = 'none';
+
+                console.log(scannedQr);
+                document.getElementById('qrtext').value = scannedQr;
+            }
+
+
+            const qrScanner = QrScanner('vid');
+            function closeVideo() {
+                // close the scan window if .stop() returns true (Actually stopped something)
+                qrScanner.stop() && (document.getElementById('CenterDIV').style.display = 'none');
+            }
+            document.getElementById('buttonCloseVideo').onclick = closeVideo;
+
+        </script>
+    </body>
+</html>

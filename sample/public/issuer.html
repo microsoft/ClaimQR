@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>Claim QR Issuer Sample</title>
+        <script src="utils.js"></script>
+    </head>
+    <body>
+        <h1>Claim QR Issuer Sample</h1>
+        <p>JSON Web Token (JWT) to encode</p>
+        <textarea id="jwt" name="jwt" rows="4" cols="75"></textarea>
+        <p>JSON Web Key (JWK) signing key</p>
+        <textarea id="jwk" name="jwk" rows="4" cols="75"></textarea>
+        <p>
+        <button type="button" onclick="issueQr()">Issuer QR</button>
+        </p>
+        <img id="qr" name="qr"/>
+    </body>
+    <script>
+        async function issueQr() {
+            const jwt = JSON.parse(document.getElementById('jwt').value);
+            const jwk = JSON.parse(document.getElementById('jwk').value);
+            const result = await restCall('/issue-qr', { "jwt": jwt, "private": jwk }, 'POST');
+            console.log(result);
+            document.getElementById('qr').src = result.qr;
+        }
+   </script>
+
+</html>

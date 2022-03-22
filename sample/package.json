@@ -1,0 +1,20 @@
+{
+  "name": "claimqr-sample",
+  "version": "1.0.0",
+  "description": "Sample for Claim QR",
+  "main": "src/server.ts",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "ts-node --files src/server.ts",
+    "postinstall": "node src/init.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.3",
+    "jsqr": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.13"
+  }
+}

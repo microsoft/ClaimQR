@@ -88,6 +88,17 @@ npm run verify-qr -- --qrPath qr.png --jwtPath outjwt.json [--jwksPath <jwksPath
 
 +++
 
+## Sample
+
+The `sample/` folder contains a sample issuer and verifier that can be used to issue and verify a Claim QR.
+
+To setup and deploy the sample, perform the following steps:
+```
+cd sample
+npm install
+npm run build
+npm run deploy
+```
 
 ## Contributing
 
