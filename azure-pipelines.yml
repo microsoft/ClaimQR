@@ -6,11 +6,6 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: ESLint@1
-  inputs:
-    Configuration: 'recommended'
-    TargetType: 'eslint'
-    ErrorLevel: 'warn'
 - task: Semmle@1
   inputs:
     sourceCodeDirectory: '$(Build.SourcesDirectory)'
