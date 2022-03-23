@@ -1,12 +1,22 @@
 import { verify } from 'crypto';
 import express from 'express';
 import http from 'http';
+import rateLimit from 'express-rate-limit';
 import {issueQrAsDataUrl} from '../../src/issue-qr';
 import {verifyQr} from '../../src/verify-qr';
 
 const app = express();
 app.use(express.json()) // for parsing application/json
 app.use(express.static('./public')) // public files
+
+// apply a rate limiter to incoming request (as suggested by CodeQL)
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+})
+app.use(limiter)
 
 interface IssueQrParams {
     jwt: any,

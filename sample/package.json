@@ -12,6 +12,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.17.3",
+    "express-rate-limit": "^6.3.0",
     "jsqr": "^1.4.0"
   },
   "devDependencies": {
