@@ -6,6 +6,8 @@ import * as jose from 'jose';
 import pako from 'pako';
 import QrCode, { QRCodeSegment } from 'qrcode';
 
+const VERBOSE_OUTPUT = false; // set to true to generate the spec example
+
 const SMALLEST_B64_CHAR_CODE = 45; // "-".charCodeAt(0) === 45
 const toNumericQr = (jws: string): QRCodeSegment[] => [
   { data: 'cqr:/', mode: 'byte' },
@@ -21,20 +23,23 @@ const toNumericQr = (jws: string): QRCodeSegment[] => [
 
 const issueQrAsText = async (jwkJson: jose.JWK, jwt: any): Promise<QRCodeSegment[]> => {
     try {
-        const bodyString = JSON.stringify(jwt); // needed?
-        const payload = pako.deflateRaw(bodyString);
-
         const kid = jwkJson.kid;
         if (!kid) {
             throw new Error("JWK doesn't have a kid");
         }
-        const jwk = await jose.importJWK(jwkJson, 'ES256');
 
+        const bodyString = JSON.stringify(jwt);
+        const payload = pako.deflateRaw(bodyString);
+        if (VERBOSE_OUTPUT) console.log(Buffer.from(payload).toString("hex").toUpperCase());
+
+        const jwk = await jose.importJWK(jwkJson, 'ES256');
         const jws = await new jose.CompactSign(payload)
         .setProtectedHeader({ alg: 'ES256', zip: 'DEF', kid: kid })
         .sign(jwk);
+        if (VERBOSE_OUTPUT) console.log(jws);
 
         const numericQR = toNumericQr(jws);
+        if (VERBOSE_OUTPUT) console.log(numericQR);
 
         return numericQR;
     } catch (err) {
