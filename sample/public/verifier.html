@@ -57,7 +57,6 @@
                 while (true) {
 
                     const scanResult = await qrScanner.scan();
-                    console.log(scanResult); // TODO: delete
                     // if the scanner returns an error
                     if (scanResult?.error) {
                         alert(`Camera Error '${scanResult.error}'`);
