@@ -1,9 +1,9 @@
 {
   "name": "claimqr",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Claim QR",
-  "main": "index.js",
   "scripts": {
+    "build": "tsc",
     "generate-issuer-keys": "ts-node --files src/generate-issuer-keys-cl.ts",
     "issue-qr": "ts-node --files src/issue-qr-cl.ts",
     "verify-qr": "ts-node --files src/verify-qr-cl.ts",
