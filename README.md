@@ -74,18 +74,32 @@ To issue a CQR, the issuer takes the input JWT, makes sure its issuer URL `[ISSU
 4. generates a Quick Response (QR) code of maximum version (size) 22, containing two segments:
   * a `byte` mode segment containing the string `cqr:/`
   * a `numeric` mode segment containing the compact JWS. Each character "c" of the JWS is converted into a sequence of two digits as by taking Ord(c)-45 and treating the result as a two-digit base ten number. For example, 'X' is encoded as 43, since Ord('X') is 88, and 88-45 is 43. 
+5. create a QR code image from the generated QR code text.
+
+The issuer makes the QR code image available to the holder.
 
 ### Claim QR holding
 
+A CQR is a bearer token, meaning there is no private key associated with the credential. It can be printed and stored physically, or stored digitally. 
+
 ### Claim QR presentation
+
+A CQR can be presented to any verifier by simply showing the QR code image (digitally or on paper). A verifier can validate the CQR by
+1. parsing the QR code image into a QR code text, validating the `cqr:/` header, and decoding the numeric encoding into a JWS,
+2. peaking into the JWS payload to extract the `iss` claim encoding the issuer URL `[ISSUER_URL]`,
+3. downloading the JWK set from `[ISSUER_URL]/.well-known/jwks.json` (unless the verifier has a recent cached copy), and extracting the public JWK with `kid` matching the JWS's `kid` header,
+4. verifying the JWS using the issuer public JWK, returning the payload if valid,
+5. inflating the payload to recover the encoded JWT 
+
+Verifiers should only accept CQR from issuers they trust. Trust establishment is application specific. An application could setup a trust directory, similar to the [VCI directory](https://github.com/the-commons-project/vci-directory/) for SHCs.
+
+### Issuer revocation
+
+If an issuer key is compromised, the issuer SHALL remove it from its published JWK set. All issued CQR will from then on become invalid.
 
 ### Claim QR revocation
 
 There is no defined mechanism to revoke a CQR in this version. Application profiles can adopt various mechanisms to achieve this, including [the one defined in the SHC framework](https://spec.smarthealth.cards/#revocation).
-
-### Issuer revocation
-
-### Claim QR revocation
 
 ## Differences with the SHC framework
 
@@ -102,18 +116,18 @@ SHCs are meant to encode medical data, using the [FHIR](https://www.hl7.org/fhir
 
 This initial release reuses as much of the SHC framework as possible, by design. Given the more general scope of CQR, however, some design decisions might be revisited for different use cases.
 
-* Supported signature algorithms: the only allowed signature algorithm at the moment is ECDSA using the NIST P-256 curve and SHA-256 hash algorithm (the JWS `ES256` algorithm). This simplifies and insures interoperability of implementations, but does not provide cryptographic agility. 
-* Different compression and QR encoding: 
+* **Supported signature algorithms**: the only allowed signature algorithm at the moment is ECDSA using the NIST P-256 curve and SHA-256 hash algorithm (the JWS `ES256` algorithm). This simplifies and insures interoperability of implementations, but does not provide cryptographic agility. 
+* **Different compression and QR encoding**: 
 
 ## Glossary
 
-* Claim: An attribute or statement 
-* CQR: Claim QR, a JWT encoded into a QR code, as specified herein.
-* JWK: JSON Web Key, see [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)
-* JWKS: JSON Web Key Set, a set of JWKs, see [section 5 of RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517#section-5)
-* JWS: JSON Web Signature, see [RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515)
-* JWT: JSON Web Tokens, see [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)
-* SHC: SMART Health Card, see https://smarthealth.cards/
+* **Claim**: An attribute or statement 
+* **CQR**: Claim QR, a JWT encoded into a QR code, as specified herein.
+* **JWK**: JSON Web Key, see [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)
+* **JWKS**: JSON Web Key Set, a set of JWKs, see [section 5 of RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517#section-5)
+* **JWS**: JSON Web Signature, see [RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515)
+* **JWT**: JSON Web Tokens, see [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)
+* **SHC**: SMART Health Card, see https://smarthealth.cards/
 
 ## Example
 
@@ -193,15 +207,37 @@ cqr:/567629595326546034602925407728043360287028656767542228092862372537602870286
 
 ![example QR code](img/example_qr.png)
 
+# Library
+
+## Setup
+
+Make sure [node.js](https://nodejs.org/) and [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) are installed on your system; the latest Long-Term Support (LTS) version is recommended for both.
+
+1. Get the source, for example using `git`
+```
+git clone -b main https://github.com/microsoft/ClaimQR.git
+cd ClaimQR
+```
+
+2. Build the `npm` package
+```
+npm install
+npm run build
+```
+
+3. Optionally, run the unit tests
+
+```
+npm test
+```
+
 ## Usage
 
-This section describes the command-line usage and the library API.
+This section describes the command-line usage of the library; see the `sample/src/server.ts` for an example to see how to use the API.
 
 ### Generate the issuer keys
 
 The issuer, identified by its URL `[ISSUER_URL]`, first needs to create its key pair. The resulting JSON Web Key Set (JWKS) file must be hosted at `[ISSUER_URL]/.well-known/jwks.json`, while the private key must be kept secret.
-
-#### Command-line
 
 Using the `npm` command-line:
 
@@ -211,17 +247,9 @@ npm run generate-issuer-keys -- --jwksPath jwks.json --privatePath privatekey.js
 
 The public key will be added to the JWK set file specified by  `jwksPath` (will be created if it doesn't exist). 
 
-#### API
-
-
-
-+++
-
 ### Issuer a Claim QR
 
 The issuer can create a QR code from a JSON Web Token (JWT) containing an `iss` property with the value `[ISSUER_URL]` and a set of application-specific claims, using its private key.
-
-#### Command-line
 
 Using the `npm` command-line:
 
@@ -231,26 +259,15 @@ npm run issue-qr -- --privatePath privatekey.json --jwtPath jwt.json --qrPath qr
 
 The resulting QR code image `qr.png` can be used by the user.
 
-#### API
-
-+++
-
-
 ### Verify a Claim QR
 
 Any party can verify a presented QR code, and extract the encoded JWT. The issuer's public key will be retrieved from the `iss` property in the encoded JWT; optionally, a JWK set can be passed to the verifier for offline validation.
-
-#### Command-line
 
 Using the `npm` command-line:
 
 ```
 npm run verify-qr -- --qrPath qr.png --jwtPath outjwt.json [--jwksPath <jwksPath>]
 ```
-
-#### API
-
-+++
 
 ## Sample
 
