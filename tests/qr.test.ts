@@ -7,6 +7,8 @@ import {generateIssuerKeys, generateIssuerKeysFiles} from '../src/generate-issue
 import {issueQrAsBuffer, issueQrAsDataUrl, issueQrFiles} from '../src/issue-qr';
 import {verifyQr, verifyQrFiles} from '../src/verify-qr';
 
+const fileEqual = (a: string, b: string): boolean => {return fs.readFileSync(a).equals(fs.readFileSync(b))}
+
 test("Generate issuer keys", async () => {
     const result = await generateIssuerKeys(undefined);
     expect(result.jwks).toBeDefined();
@@ -76,7 +78,7 @@ test("Test end-to-end", async () => {
     await generateIssuerKeysFiles(privateKeyPath, jwksPath);
     await issueQrFiles(privateKeyPath, jwtPath, qrPath);
     await verifyQrFiles('image', qrPath, outJwtPath, jwksPath);
-    // TODO: check file match
+    expect(fileEqual(jwtPath,outJwtPath)).toBeTruthy();
 });
 
 // error cases
