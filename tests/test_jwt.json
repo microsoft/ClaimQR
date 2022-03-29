@@ -1,9 +1,9 @@
 {
     "iss": "https://raw.githubusercontent.com/christianpaquin/void/main/cqr",
-    "nbf": 1646340770.87,
+    "nbf": 1648226603.76,
+    "cqv": "0.1",
     "given_name": "First",
     "middle_name": "Middle",
     "family_name": "Last",
-    "over21": true
+    "https://example.org/custom": "value"
 }
-    

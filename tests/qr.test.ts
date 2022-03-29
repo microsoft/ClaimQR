@@ -15,7 +15,7 @@ test("Generate issuer keys", async () => {
 
 test("Generate issuer keys -- file API", async () => {
     const privateKeyPath = 'tmp/testPrivateKey.json';
-    const jwksPath = 'tmp/testjwks.json'; // TODO: delete
+    const jwksPath = 'tmp/testjwks.json'; // TODO: delete after test
     await generateIssuerKeysFiles(privateKeyPath, jwksPath);
     expect(fs.existsSync(privateKeyPath)).toBeTruthy();
     expect(fs.existsSync(jwksPath)).toBeTruthy();
@@ -69,7 +69,7 @@ test("Verify QR -- file API w/ offline JWKS", async () => {
 
 test("Test end-to-end", async () => {
     const privateKeyPath = 'tmp/e2eprivate.json';
-    const jwksPath = 'tmp/e2ejwks.json'; // TODO: delete
+    const jwksPath = 'tmp/e2ejwks.json'; // TODO: delete after test
     const jwtPath = 'tests/test_jwt.json';
     const qrPath = 'tmp/e2eqr.png';
     const outJwtPath = 'tmp/e2eOutJwt.json';
@@ -81,8 +81,14 @@ test("Test end-to-end", async () => {
 
 // error cases
 
-/* TODO
-test("Verify invalid QR", async () => {
-    expect(await verifyQrFiles('image', 'tests/qr_invalid_sig.png', 'tmp/outjwt.json', undefined)).toThrow();
+test("CQR with invalid signature", async () => {
+    await expect(verifyQrFiles('image', 'tests/qr_invalid_sig.png', 'tmp/outjwt.json', 'tests/test_jwks.json')).rejects.toThrow();
 });
-*/
+
+test("Expired CQR", async () => {
+    await expect(verifyQrFiles('image', 'tests/test_expired_qr.png', 'tmp/outjwt.json', 'tests/test_jwks.json')).rejects.toThrow();
+});
+
+test("Not yet valid CQR", async () => {
+    await expect(verifyQrFiles('image', 'tests/test_notyetvalid_qr.png', 'tmp/outjwt.json', 'tests/test_jwks.json')).rejects.toThrow();
+});

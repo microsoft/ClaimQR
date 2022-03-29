@@ -8,8 +8,9 @@ import jsQR from 'jsqr';
 import sharp from 'sharp';
 
 interface JWSPayload {
-    "iss": string,
-    "nbf": number,
+    iss: string,
+    cqv: string,
+    nbf?: number,
     exp?: number,
 }
 
@@ -17,7 +18,7 @@ const validateJws = async (jws: string, jwksJson: jose.JSONWebKeySet | undefined
     // split JWS into header[0], payload[1], sig[2]
     const parts = jws.split('.');
     if (parts.length !== 3) {
-        throw new Error(`Can't parse JWS, can't split in 3 parts`);
+        throw new Error("Error parsing JWS");
     }
 
     // check payload
@@ -26,19 +27,19 @@ const validateJws = async (jws: string, jwksJson: jose.JSONWebKeySet | undefined
         const b64DecodedPayloadBuffer = Buffer.from(parts[1], 'base64');
         // extract the utf8 bytes
         const inflatedPayloadBuf = pako.inflateRaw(b64DecodedPayloadBuffer);
-        if (!inflatedPayloadBuf) throw "inflateRaw failed";
+        if (!inflatedPayloadBuf) throw new Error("inflateRaw failed");
         const payload = Buffer.from(inflatedPayloadBuf).toString();
-        if (!payload) throw "inflated payload can't be parsed as a string";
+        if (!payload) throw new Error("inflated payload can't be parsed as a string");
         jWSPayload = JSON.parse(payload) as JWSPayload;
-        if (!jWSPayload) throw "payload can't be parsed as a JWS payload";
+        if (!jWSPayload) throw new Error("payload can't be parsed as a JWS payload");
     } catch (err) {
         throw new Error(`Error decode the JWS payload: ${err}`);
     }
-    
+
     // retrieve the issuer key
     const iss = (jWSPayload.iss);
     if (!iss) {
-        throw new Error("Missing iss field from JWS header")
+        throw new Error("Missing iss field from JWS header");
     }
     // TODO: check if issuer is trusted here?
     let jwks;
@@ -111,6 +112,12 @@ const qrToJws = (cqr: string): string => {
     return jws;
 }
 
+const getDate = (time: number) => {
+    const date = new Date();
+    date.setTime(time * 1000); // convert seconds to milliseconds
+    return date;
+}
+
 export const verifyQr = async (qrText: string, jwks: jose.JSONWebKeySet | undefined): Promise<JWSPayload> => {
     try {
         // extract the JWS
@@ -118,7 +125,21 @@ export const verifyQr = async (qrText: string, jwks: jose.JSONWebKeySet | undefi
 
         // validate the JWS and extract the JWT
         const jwt = await validateJws(jws, jwks);
-        // TODO: validate exp and other fields
+        
+        // validate validity period
+        const now = new Date();
+        if (jwt.nbf) {
+            const nbf = getDate(jwt.nbf);
+            if (nbf && nbf > now) {
+                throw new Error(`CQR not yet valid: 'nbf': ${nbf}, now: ${now}`);
+            }
+        }
+        if (jwt.exp) {
+            const exp = getDate(jwt.exp);
+            if (exp && now > exp) {
+                throw new Error(`CQR is expired: 'exp': ${exp}, now: ${now}`);
+            }
+        }
 
         return jwt;
     } catch (err) {

@@ -4,12 +4,6 @@
 import * as jose from 'jose';
 import fs from 'fs';
 
-interface Options {
-    jwksPath: string;
-    privatePath: string;
-}
-
-
 export interface GenerateIssuerKeysResult {
     jwks: jose.JSONWebKeySet;
     privateJwk: jose.JWK;
