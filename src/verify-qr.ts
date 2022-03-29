@@ -151,11 +151,14 @@ export const verifyQrFiles = async (type: string, qrPath: string, jwtPath: strin
     console.log(`Verifying QR ${type} from ${qrPath}`);
 
     if (!fs.existsSync(qrPath)) {
-        throw new Error("File not found : " + qrPath);
+        throw new Error("File not found: " + qrPath);
     }
 
     let jwks: jose.JSONWebKeySet | undefined;
-    if (jwksPath && fs.existsSync(jwksPath)) {
+    if (jwksPath) {
+        if (!fs.existsSync(jwksPath)) {
+            throw new Error("File not found: " + jwksPath);
+        }
         const jwksBytes = fs.readFileSync(jwksPath, 'utf8');
         jwks = JSON.parse(jwksBytes) as jose.JSONWebKeySet;
     }

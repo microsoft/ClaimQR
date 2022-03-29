@@ -66,7 +66,7 @@ test("Verify QR -- file API", async () => {
 });
 
 test("Verify QR -- file API w/ offline JWKS", async () => {
-    await verifyQrFiles('text', 'tests/test_qr.txt', 'tmp/outjwt.json', 'tests/test_jwks.json');
+    await verifyQrFiles('text', 'tests/test_qr.txt', 'tmp/outjwt.json', 'tests/.well-known/jwks.json');
 });
 
 test("Test end-to-end", async () => {
@@ -84,13 +84,13 @@ test("Test end-to-end", async () => {
 // error cases
 
 test("CQR with invalid signature", async () => {
-    await expect(verifyQrFiles('image', 'tests/qr_invalid_sig.png', 'tmp/outjwt.json', 'tests/test_jwks.json')).rejects.toThrow();
+    await expect(verifyQrFiles('image', 'tests/qr_invalid_sig.png', 'tmp/outjwt.json', 'tests/.well-known/jwks.json')).rejects.toThrow();
 });
 
 test("Expired CQR", async () => {
-    await expect(verifyQrFiles('image', 'tests/test_expired_qr.png', 'tmp/outjwt.json', 'tests/test_jwks.json')).rejects.toThrow();
+    await expect(verifyQrFiles('image', 'tests/test_expired_qr.png', 'tmp/outjwt.json', 'tests/.well-known/jwks.json')).rejects.toThrow();
 });
 
 test("Not yet valid CQR", async () => {
-    await expect(verifyQrFiles('image', 'tests/test_notyetvalid_qr.png', 'tmp/outjwt.json', 'tests/test_jwks.json')).rejects.toThrow();
+    await expect(verifyQrFiles('image', 'tests/test_notyetvalid_qr.png', 'tmp/outjwt.json', 'tests/.well-known/jwks.json')).rejects.toThrow();
 });
