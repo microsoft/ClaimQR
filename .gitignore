@@ -6,3 +6,9 @@ node_modules/
 
 # temp files
 tmp/*
+
+# transpiled TypeScript
+*.js
+
+# generated test keys
+*.json

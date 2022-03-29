@@ -64,10 +64,10 @@ Various application-specific claims can be encoded into the JWT, including the s
 
 ### Claim QR issuance
 
-To issue a CQR, the issuer takes the input JWT, makes sure its issuer URL `[ISSUER_URL]` is specified as the `iss` claim, sets the token's metadata if any (`nbf`, `exp`), then the issuer
+To issue a CQR, the issuer takes the input JWT, makes sure its issuer URL `[ISSUER_URL]` is specified as the `iss` claim, sets the token's metadata if any (`nbf`, `exp`), then the issuer:
 1. converts the payload into a minified JSON string (without spaces and newlines),
 2. compresses the string using the payload with the DEFLATE (see [RFC 1951]((https://datatracker.ietf.org/doc/html/rfc1951))) algorithm before being signed (note, this should be "raw" DEFLATE compression, omitting any zlib or gz headers),
-3. creates a compact [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS) using the its private signing key, using the compressed payload and setting the JWS header properties,
+3. creates a compact [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS) using the issuer's private signing key, using the compressed payload and setting the JWS header properties,
   * `alg: "ES256"`,
   * `zip: "DEF"`,
   * `kid` equal to the base64url-encoded (see [section 5 of RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648#section-5)) SHA-256 JWK Thumbprint of the key (see [RFC 7638](https://datatracker.ietf.org/doc/html/rfc7638))
@@ -86,7 +86,7 @@ A CQR is a bearer token, meaning there is no private key associated with the cre
 
 A CQR can be presented to any verifier by simply showing the QR code image (digitally or on paper). A verifier can validate the CQR by
 1. parsing the QR code image into a QR code text, validating the `cqr:/` header, and decoding the numeric encoding into a JWS,
-2. peaking into the JWS payload to extract the `iss` claim encoding the issuer URL `[ISSUER_URL]`,
+2. peeking into the JWS payload to extract the `iss` claim encoding the issuer URL `[ISSUER_URL]`,
 3. downloading the JWK set from `[ISSUER_URL]/.well-known/jwks.json` (unless the verifier has a recent cached copy), and extracting the public JWK with `kid` matching the JWS's `kid` header,
 4. verifying the JWS using the issuer public JWK, returning the payload if valid,
 5. inflating the payload to recover the encoded JWT 
