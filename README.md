@@ -1,8 +1,8 @@
 # Claim QR Codes
 
-It is useful for users to be able to present attribute information, or _claims_ about themselves to various relying parties. This commonly happens in online exchanges, through federated protocols such as OpenID Connect. The situation is quite different in the real-world, where the claims are typically encoded in physical documents (e.g., drivers license, employment badges, etc.) in which various measures are employed to protect the integrity of the documents and to attest to their origin.
+It is useful for users to be able to present attribute information, or _claims_ about themselves to various relying parties. This commonly happens in online exchanges, through federated protocols such as SAML and OpenID Connect. The situation is quite different in the real-world, where the claims are typically encoded in physical documents (e.g., drivers license, employment badges, etc.) in which various measures are employed to protect the integrity of the documents and to attest to their origin.
 
-The advent of COVID vaccination credentials popularized the idea of carrying electronically-protected claims while presenting them in an offline manner, typically using a QR code. One such popular effort is the [SMART Health Cards](https://smarthealth.cards/) (SHC) framework that enabled millions of people to hold their proofs of vaccination in a QR image or a paper printout and present them to various verifiers.
+The advent of COVID vaccination credentials popularized the idea of carrying cryptographically-protected claims while presenting them in an offline manner, typically using a QR code. One such popular effort is the [SMART Health Cards](https://smarthealth.cards/) (SHC) framework that enabled millions of people to hold their proofs of vaccination in a QR image or a paper printout and present them to various verifiers.
 
 This paradigm of showing electronically protected claims using a QR code is an interesting one. The ubiquity of smartphones allowing users to hold their claims in a client wallet, and verifiers to easily scan the QR codes for validation, makes it very easy to interact in a user-centric, _ad hoc_ manner.
 
@@ -16,7 +16,7 @@ Each issuer participating in the system, identified by a URL `[ISSUER_URL]`, cre
 
 The claims are encoded into a [JSON Web Token](https://datatracker.ietf.org/doc/html/rfc7519) (JWT), which is in turn compressed, signed with the issuer private key, and encoded into a QR image.
 
-Verifiers can extract the JWT from presented QR codes after validating the issuer signature: the issuer identifier is first extracted from the QR code, the corresponding public key is either retrieved from the online location or from a local cache. Deciding which issuers to trust is application-specific; some applications could have a pre-determined set of issuers, or a hierarchical approach (e.g., like in PKI) could be used.
+Verifiers can extract the JWT from presented QR codes after validating the issuer signature: the issuer identifier is first extracted from the QR code, the corresponding public key is either retrieved from its online location or from a local cache. Deciding which issuers to trust is application-specific; some applications could have a pre-determined set of issuers, or a hierarchical approach (e.g., like in PKI) could be used.
 
 The following diagram illustrates the system.
 
@@ -47,11 +47,11 @@ Issuers SHALL publish their public keys in a JWK set (see [section 5 of RFC 7517
 
 Guidelines for key rotation is application-specific; a period of one year is RECOMMENDED by default. A new key pair is generated, and its public key is added to the published JWK set.  
 
-Old private keys SHALL be destroyed, old public keys SHALL remain in the published JWK set until no more valid (unexpired) CQR remain in circulation (otherwise verifiers won't be able to validate them).
+Old private keys SHALL be destroyed; old public keys SHALL remain in the published JWK set until no more valid (unexpired) CQR remain in circulation (otherwise verifiers won't be able to validate them).
 
 #### Issuer key revocation
 
-If an issuer key is compromised, the issuer SHALL immediately remove the corresponding public key from the published JWK set. Verifiers will from now on  reject CQR issued using that key. 
+If an issuer key is compromised, the issuer SHALL delete the private key and immediately remove the corresponding public key from the published JWK set (verifiers will from now on reject CQRs issued using that key). The issuer then generates a new key pair.
 
 ### Claim QR content
 
@@ -65,16 +65,16 @@ Various application-specific claims can be encoded into the JWT, including the s
 ### Claim QR issuance
 
 To issue a CQR, the issuer takes the input JWT, makes sure its issuer URL `[ISSUER_URL]` is specified as the `iss` claim, sets the token's metadata if any (`nbf`, `exp`), then the issuer
-1. converts the payload into a minified JSON string (without spaces and newlines)
-2. compresses the string using the payload with the DEFLATE (see [RFC 1951]((https://datatracker.ietf.org/doc/html/rfc1951))) algorithm before being signed (note, this should be "raw" DEFLATE compression, omitting any zlib or gz headers)
-3. creates a compact [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS) using the its private signing key, using the compressed payload and setting the JWS header properties
+1. converts the payload into a minified JSON string (without spaces and newlines),
+2. compresses the string using the payload with the DEFLATE (see [RFC 1951]((https://datatracker.ietf.org/doc/html/rfc1951))) algorithm before being signed (note, this should be "raw" DEFLATE compression, omitting any zlib or gz headers),
+3. creates a compact [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS) using the its private signing key, using the compressed payload and setting the JWS header properties,
   * `alg: "ES256"`,
   * `zip: "DEF"`,
   * `kid` equal to the base64url-encoded (see [section 5 of RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648#section-5)) SHA-256 JWK Thumbprint of the key (see [RFC 7638](https://datatracker.ietf.org/doc/html/rfc7638))
 4. generates a Quick Response (QR) code of maximum version (size) 22, containing two segments:
   * a `byte` mode segment containing the string `cqr:/`
-  * a `numeric` mode segment containing the compact JWS. Each character "c" of the JWS is converted into a sequence of two digits as by taking Ord(c)-45 and treating the result as a two-digit base ten number. For example, 'X' is encoded as 43, since Ord('X') is 88, and 88-45 is 43. 
-5. create a QR code image from the generated QR code text.
+  * a `numeric` mode segment containing the compact JWS. Each character "c" of the JWS is converted into a sequence of two digits as by taking Ord(c)-45 and treating the result as a two-digit base ten number. For example, 'X' is encoded as 43, since Ord('X') is 88, and 88-45 is 43
+5. creates a QR code image from the generated QR code text.
 
 The issuer makes the QR code image available to the holder.
 
@@ -247,7 +247,7 @@ npm run generate-issuer-keys -- --jwksPath jwks.json --privatePath privatekey.js
 
 The public key will be added to the JWK set file specified by  `jwksPath` (will be created if it doesn't exist). 
 
-### Issuer a Claim QR
+### Issue a Claim QR
 
 The issuer can create a QR code from a JSON Web Token (JWT) containing an `iss` property with the value `[ISSUER_URL]` and a set of application-specific claims, using its private key.
 
