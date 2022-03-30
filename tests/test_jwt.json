@@ -1,5 +1,5 @@
 {
-    "iss": "https://raw.githubusercontent.com/christianpaquin/void/main/cqr",
+    "iss": "https://raw.githubusercontent.com/microsoft/ClaimQR/main/tests",
     "nbf": 1648226603.76,
     "cqv": "0.1",
     "given_name": "First",
