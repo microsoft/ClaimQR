@@ -1,10 +1,10 @@
 # Claim QR Codes
 
-It is useful for users to be able to present attribute information, or _claims_ about themselves to various relying parties. This commonly happens in online exchanges, through federated protocols such as SAML and OpenID Connect. The situation is quite different in the real-world, where the claims are typically encoded in physical documents (e.g., drivers license, employment badges, etc.) in which various measures are employed to protect the integrity of the documents and to attest to their origin.
+It is useful for users to be able to present attribute information, or _claims_ about themselves to various relying parties. This commonly happens in online exchanges, through federated protocols such as SAML and OpenID Connect. The situation is quite different in the real-world, where the claims are typically encoded in physical documents (e.g., driver's licenses, employment badges, etc.) in which various measures are employed to protect the integrity of the documents and to attest to their origin.
 
-The advent of COVID vaccination credentials popularized the idea of carrying cryptographically-protected claims while presenting them in an offline manner, typically using a QR code. One such popular effort is the [SMART Health Cards](https://smarthealth.cards/) (SHC) framework that enabled millions of people to hold their proofs of vaccination in a QR image or a paper printout and present them to various verifiers.
+The advent of COVID vaccination credentials popularized the idea of carrying cryptographically protected claims while presenting them in an offline manner, typically using a QR code. One such popular effort is the [SMART Health Cards](https://smarthealth.cards/) (SHC) framework that enabled millions of people to hold their proofs of vaccination on an electronic device or a paper printout and present them to various verifiers.
 
-This paradigm of showing electronically protected claims using a QR code is an interesting one. The ubiquity of smartphones allowing users to hold their claims in a client wallet, and verifiers to easily scan the QR codes for validation, makes it very easy to interact in a user-centric, _ad hoc_ manner.
+This paradigm of showing cryptographically protected claims using a QR code is an interesting one. The ubiquity of smartphones allowing users to hold their claims in a client wallet, and verifiers to easily scan the QR codes for validation, makes it very easy to interact in a user-centric, _ad hoc_ manner.
 
 The goal of this project is to prototype how generic claims (attributes) can be issued to users in the form of a QR code that can be presented to verifiers, who can dynamically discover the issuer and validate the claims. We call this credential a Claim QR (CQR). In this initial release, we are reusing most of the technical specification of the SHC framework to facilitate reusing existing implementations; alternative options and new features will be explored in [future versions](#extensions).
 
@@ -16,7 +16,7 @@ Each issuer participating in the system, identified by a URL `[ISSUER_URL]`, cre
 
 The claims are encoded into a [JSON Web Token](https://datatracker.ietf.org/doc/html/rfc7519) (JWT), which is in turn compressed, signed with the issuer private key, and encoded into a QR image.
 
-Verifiers can extract the JWT from presented QR codes after validating the issuer signature: the issuer identifier is first extracted from the QR code, the corresponding public key is either retrieved from its online location or from a local cache. Deciding which issuers to trust is application-specific; some applications could have a pre-determined set of issuers, or a hierarchical approach (e.g., like in PKI) could be used.
+Verifiers can extract the JWT from presented QR codes after validating the issuer signature: the issuer identifier is first extracted from the QR code, the corresponding public key is either retrieved from its online location or from a local cache. Deciding which issuers to trust is application-specific; some applications could have a pre-determined set of issuers, or a PKI hierarchical approach could be used instead.
 
 The following diagram illustrates the system.
 
@@ -45,9 +45,9 @@ Issuers SHALL publish their public keys in a JWK set (see [section 5 of RFC 7517
 
 #### Issuer key rotation
 
-Guidelines for key rotation is application-specific; a period of one year is RECOMMENDED by default. A new key pair is generated, and its public key is added to the published JWK set.  
+Guidelines for key rotation are application-specific; a period of one year is RECOMMENDED by default. A new key pair is generated, and its public key is added to the published JWK set.  
 
-Old private keys SHALL be destroyed; old public keys SHALL remain in the published JWK set until no more valid (unexpired) CQR remain in circulation (otherwise verifiers won't be able to validate them).
+Old private keys SHALL be destroyed; old public keys SHALL remain in the published JWK set until no more valid (unexpired) CQRs remain in circulation (otherwise verifiers won't be able to validate them).
 
 #### Issuer key revocation
 
@@ -66,7 +66,7 @@ Various application-specific claims can be encoded into the JWT, including the s
 
 To issue a CQR, the issuer takes the input JWT, makes sure its issuer URL `[ISSUER_URL]` is specified as the `iss` claim, sets the token's metadata if any (`nbf`, `exp`), then the issuer
 1. converts the payload into a minified JSON string (without spaces and newlines),
-2. compresses the string using the payload with the DEFLATE (see [RFC 1951]((https://datatracker.ietf.org/doc/html/rfc1951))) algorithm before being signed (note, this should be "raw" DEFLATE compression, omitting any zlib or gz headers),
+2. compresses the payload string using the DEFLATE algorithm (see [RFC 1951]((https://datatracker.ietf.org/doc/html/rfc1951)); this should be "raw" DEFLATE compression, omitting any zlib or gz headers),
 3. creates a compact [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS) using the its private signing key, using the compressed payload and setting the JWS header properties,
   * `alg: "ES256"`,
   * `zip: "DEF"`,
@@ -80,7 +80,7 @@ The issuer makes the QR code image available to the holder.
 
 ### Claim QR holding
 
-A CQR is a bearer token, meaning there is no private key associated with the credential. It can be printed and stored physically, or stored digitally. 
+A CQR is a bearer token, meaning there is no private key associated with the credential. It can be printed and stored physically (e.g., on paper) or digitally (e.g., on a phone). 
 
 ### Claim QR presentation
 
@@ -95,34 +95,35 @@ Verifiers should only accept CQR from issuers they trust. Trust establishment is
 
 ### Issuer revocation
 
-If an issuer key is compromised, the issuer SHALL remove it from its published JWK set. All issued CQR will from then on become invalid.
+If an issuer key is compromised, the issuer SHALL remove it from its published JWK set. All issued CQRs issued using that key will from then on be invalid.
 
 ### Claim QR revocation
 
-There is no defined mechanism to revoke a CQR in this version. Application profiles can adopt various mechanisms to achieve this, including [the one defined in the SHC framework](https://spec.smarthealth.cards/#revocation).
+There is no defined mechanism to revoke a specific CQR in this version. Application profiles can adopt various mechanisms to achieve this, including [the one defined in the SHC framework](https://spec.smarthealth.cards/#revocation).
 
 ## Differences with the SHC framework
 
 SHCs are meant to encode medical data, using the [FHIR](https://www.hl7.org/fhir/) standard, as opposed to general claims as it is done in this project. The main differences with the SHC framework [specification](https://spec.smarthealth.cards/) are:
 
-* **No VC**: for simplicity, the claims are encoded directly in a JWT, and not in a Verifiable Credential object. In the SHC framework, the VC property simply acts as a shell for the FHIR bundle, so removing it helps removing a dependency.
+* **No VC**: for simplicity, the claims are encoded directly in a JWT, and not in a Verifiable Credential object. In the SHC framework, the VC property simply acts as a shell for the FHIR bundle.
 * **No QR chunking**: SHCs can be split across multiple QR codes. This feature hasn't seen much adoption in practice, so this project doesn't make use of it. Application-specific methods can instead be used to split a payload across multiple QR codes, if needed.
-* **No X.509 extension**: issue keys can be tied to a X.509 certificate by using the `x5c` property of the JWK. This project doesn't make explicit use of these feature, although an application profile could make use of it. 
+* **No X.509 extension**: issue keys can be tied to a X.509 certificate by using the `x5c` property of the JWK. This project doesn't make explicit use of this feature, although an application profile could do so. 
 * **cqr header**: SHC QR codes have a `shc` header; this project instead use the header `cqr` (for Claim QR).
 * **CQR expiration**: SHCs express medical facts that do not expire, therefore SHCs do not contain an expiration date. CQRs, on the other hand, can encode any type of entitlements, and therefore an expiration date (using the JWT `exp` claim) can be present for many use cases.
-* **No stand-alone file**: CQR are only available in the form of a QR, there is no equivalent to a `.smart-health-card` file.
+* **No stand-alone file**: CQR are only available in the form of a QR code, there is no equivalent to a `.smart-health-card` file.
 
 ## Extensions
 
-This initial release reuses as much of the SHC framework as possible, by design. Given the more general scope of CQR, however, some design decisions might be revisited for different use cases.
+This initial release reuses as much of the SHC framework as possible, by design. Given the more general scope of CQR, however, some design decisions might be revisited for different use cases. These might be explored in future versions.
 
 * **Supported signature algorithms**: the only allowed signature algorithm at the moment is ECDSA using the NIST P-256 curve and SHA-256 hash algorithm (the JWS `ES256` algorithm). This simplifies and insures interoperability of implementations, but does not provide cryptographic agility. 
-* **Different compression and QR encoding**: 
+* **Different compression and QR encoding**: the SHC compression and QR encoding rules were optimized for the FHIR bundle payload; a generic JWT payload might benefit from other technical options.
+* **Selective claim disclosure**: currently, all the claims in a CQR are disclosed at presentation. Selective disclosure techniques can be used to only present a subset of the claims.
 
 ## Glossary
 
 * **Claim**: An attribute or statement 
-* **CQR**: Claim QR, a JWT encoded into a QR code, as specified herein.
+* **CQR**: Claim QR, a JWT encoded into a QR code, as specified in this document
 * **JWK**: JSON Web Key, see [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)
 * **JWKS**: JSON Web Key Set, a set of JWKs, see [section 5 of RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517#section-5)
 * **JWS**: JSON Web Signature, see [RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515)
