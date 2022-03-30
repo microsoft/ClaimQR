@@ -1,6 +1,11 @@
 # Dependency directories
 node_modules/
 
+# compiled js files
+js/*
+sample/src/js/*
+sample/public/jsQR.js
+
 # emacs
 *~
 
