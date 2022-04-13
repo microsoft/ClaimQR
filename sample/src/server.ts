@@ -3,6 +3,7 @@ import http from 'http';
 import rateLimit from 'express-rate-limit';
 import {issueQrAsDataUrl} from '../../src/issue-qr';
 import {verifyQr} from '../../src/verify-qr';
+import {discloseClaimsAsDataUrl} from '../../src/disclose-claims';
 
 const app = express();
 app.use(express.json()) // for parsing application/json
@@ -19,7 +20,8 @@ app.use(limiter)
 
 interface IssueQrParams {
     jwt: any,
-    private: any
+    private: any,
+    claimValues?: any
 }
 
 app.post('/issue-qr', async (req, res) => {
@@ -27,7 +29,7 @@ app.post('/issue-qr', async (req, res) => {
     res.type('json');
     try {
         const params = req.body as IssueQrParams;
-        const result = await issueQrAsDataUrl(params.private, params.jwt);
+        const result = await issueQrAsDataUrl(params.private, params.jwt, params.claimValues);
         const response = {qr: result};
         console.log(response);
         res.send(response);
@@ -59,9 +61,31 @@ app.post('/verify-qr', async (req, res) => {
     }
 });
 
+interface DiscloseClaimsParams {
+    qr: string,
+    claims: string[]
+}
+
+app.post('/disclose-claims', async (req, res) => {
+    console.log('Received POST for', '/disclose-claims', req.body);
+    res.type('json');
+    try {
+        const params = req.body as DiscloseClaimsParams;
+        const result = await discloseClaimsAsDataUrl(params.qr, params.claims);
+        const response = {qr: result};
+        console.log(response);
+        res.send(response);
+    } catch (err) {
+        const errString = err as string;
+        console.log("Error: " + errString);
+        res.send({error: errString});
+    }
+});
+
 http.createServer(app).listen(8080, () => {
     const url = 'http://localhost:8080/';
     console.log("Service listening at " + url);
     console.log("Issuer portal:  " + url + 'issuer.html');
+    console.log("Holder portal:  " + url + 'holder.html');
     console.log("Verifier portal:  " + url + 'verifier.html');
 });

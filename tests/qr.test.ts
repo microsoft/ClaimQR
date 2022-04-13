@@ -6,6 +6,7 @@ import * as jose from 'jose';
 import {generateIssuerKeys, generateIssuerKeysFiles} from '../src/generate-issuer-keys';
 import {issueQrAsBuffer, issueQrAsDataUrl, issueQrFiles} from '../src/issue-qr';
 import {verifyQr, verifyQrFiles} from '../src/verify-qr';
+import {discloseClaimsAsBuffer, discloseClaimsAsDataUrl, discloseClaimsFiles} from '../src/disclose-claims';
 
 const fileEqual = (a: string, b: string): boolean => {return fs.readFileSync(a).equals(fs.readFileSync(b))}
 
@@ -32,7 +33,7 @@ test("Issue QR as Buffer", async () => {
     const jwt = JSON.parse(jwtString);
 
     // issue and write-out QR code
-    const qr = await issueQrAsBuffer(jwkJson, jwt);
+    const qr = await issueQrAsBuffer(jwkJson, jwt, undefined);
     expect(qr).toBeDefined();
 });
 
@@ -45,15 +46,57 @@ test("Issue QR as Data URL", async () => {
     const jwt = JSON.parse(jwtString);
 
     // issue and write-out QR code
-    const qr = await issueQrAsDataUrl(jwkJson, jwt);
+    const qr = await issueQrAsDataUrl(jwkJson, jwt, undefined);
     expect(qr).toBeDefined();
 });
 
 test("Issue QR -- file API", async () => {
     const qrPath = 'tmp/qr.png';
-    await issueQrFiles('tests/test_private.json', 'tests/test_jwt.json', qrPath);
+    await issueQrFiles('tests/test_private.json', 'tests/test_jwt.json', qrPath, undefined);
     expect(fs.existsSync(qrPath)).toBeTruthy();
 });
+
+test("Issue QR as Buffer with selective disclosure", async () => {
+    const privateString = fs.readFileSync('tests/test_private.json', 'utf8');
+    const jwkJson = JSON.parse(privateString) as jose.JWK;
+
+    // read the JWT payload
+    const jwtString = fs.readFileSync('tests/test_seldisc_jwt.json', 'utf8');
+    const jwt = JSON.parse(jwtString);
+
+    // read the claim values
+    const claimValuesString = fs.readFileSync('tests/test_seldisc_claims.json', 'utf8');
+    const claimValues = JSON.parse(claimValuesString);
+
+    // issue and write-out QR code
+    const qr = await issueQrAsBuffer(jwkJson, jwt, claimValues);
+    expect(qr).toBeDefined();
+});
+
+test("Issue QR as Data URL with selective disclosure", async () => {
+    const privateString = fs.readFileSync('tests/test_private.json', 'utf8');
+    const jwkJson = JSON.parse(privateString) as jose.JWK;
+
+    // read the JWT payload
+    const jwtString = fs.readFileSync('tests/test_seldisc_jwt.json', 'utf8');
+    const jwt = JSON.parse(jwtString);
+
+    // read the claim values
+    const claimValuesString = fs.readFileSync('tests/test_seldisc_claims.json', 'utf8');
+    const claimValues = JSON.parse(claimValuesString);
+
+    // issue and write-out QR code
+    const qr = await issueQrAsDataUrl(jwkJson, jwt, claimValues);
+    expect(qr).toBeDefined();
+});
+
+test("Issue QR -- file API with selective disclosure", async () => {
+    const qrPath = 'tmp/qr.png';
+    await issueQrFiles('tests/test_private.json', 'tests/test_seldisc_jwt.json', qrPath, 'tests/test_seldisc_claims.json');
+    expect(fs.existsSync(qrPath)).toBeTruthy();
+});
+
+// TODO: add sel. disc. claim
 
 test("Verify QR", async () => {
     const qrTest = fs.readFileSync('tests/test_qr.txt', 'utf-8');
@@ -76,10 +119,36 @@ test("Test end-to-end", async () => {
     const qrPath = 'tmp/e2eqr.png';
     const outJwtPath = 'tmp/e2eOutJwt.json';
     await generateIssuerKeysFiles(privateKeyPath, jwksPath);
-    await issueQrFiles(privateKeyPath, jwtPath, qrPath);
+    await issueQrFiles(privateKeyPath, jwtPath, qrPath, undefined);
     await verifyQrFiles('image', qrPath, outJwtPath, jwksPath);
     expect(fileEqual(jwtPath,outJwtPath)).toBeTruthy();
 });
+
+test("Test end-to-end with selective disclosure", async () => {
+    const privateKeyPath = 'tmp/e2eSDprivate.json';
+    const jwksPath = 'tmp/e2eSDjwks.json'; // TODO: delete after test
+    const jwtPath = 'tests/test_seldisc_jwt.json';
+    const claimsPath = 'tests/test_seldisc_claims.json';
+    const qrPath = 'tmp/e2eSDqr.png';
+    const outJwtPath = 'tmp/e2eSDOutJwt.json';
+    const selDiscQrPath = 'tmp/e2eSDupdatedQr.png';
+    const outUpdatedJwtPath = 'tmp/e2eSDUpdatedOutJwt.json';
+    const claims = ['middle_name', 'https://example.org/custom'];
+    await generateIssuerKeysFiles(privateKeyPath, jwksPath);
+    await issueQrFiles(privateKeyPath, jwtPath, qrPath, claimsPath);
+    await verifyQrFiles('image', qrPath, outJwtPath, jwksPath);
+//    expect(fileEqual(jwtPath,outJwtPath)).toBeTruthy(); // files won't be the same, because of the disclosed claims
+    await discloseClaimsFiles('image', qrPath, claims, selDiscQrPath);
+    await verifyQrFiles('image', selDiscQrPath, outUpdatedJwtPath, jwksPath);
+    const outUpdatedJwtString = fs.readFileSync(outUpdatedJwtPath, 'utf8');
+    const outUpdatedJwt = JSON.parse(outUpdatedJwtString);
+    // check claim values were correctly disclosed
+    expect(outUpdatedJwt.disclosedClaims).toBeTruthy();
+    Object.keys(outUpdatedJwt.disclosedClaims).forEach(claim => {
+        expect(outUpdatedJwt.disclosedClaims[claim]).toBeTruthy();
+    });
+});
+
 
 // error cases
 
