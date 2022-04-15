@@ -84,7 +84,6 @@ app.post('/disclose-claims', async (req, res) => {
 
 http.createServer(app).listen(8080, () => {
     const url = 'http://localhost:8080/';
-    console.log("Service listening at " + url);
     console.log("Issuer portal:  " + url + 'issuer.html');
     console.log("Holder portal:  " + url + 'holder.html');
     console.log("Verifier portal:  " + url + 'verifier.html');
