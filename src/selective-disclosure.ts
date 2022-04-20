@@ -3,6 +3,7 @@
 
 import * as crypto from 'crypto';
 import pako from 'pako';
+import * as jose from 'jose';
 
 export interface ClaimDigests {
 
@@ -34,11 +35,11 @@ export const createClaimDigestsObject = (claimValues: any): ClaimDigestResults =
     const salts: Buffer[] = names.map(v => crypto.randomBytes(8));
     for (let i = 0; i < names.length; i++) {
         const claimData = {
-            s: salts[i].toString('base64'),
+            s: jose.base64url.encode(salts[i]),
             v: values[i]
         }
         Object.defineProperty(data, names[i], {value: claimData, enumerable: true});
-        const b64Digest = crypto.createHash('sha256').update(salts[i]).update(values[i]).digest().subarray(0, 16).toString('base64');
+        const b64Digest = jose.base64url.encode(crypto.createHash('sha256').update(salts[i]).update(values[i]).digest().subarray(0, 16));
         Object.defineProperty(claimDigests, names[i], {value: b64Digest, enumerable: true});
     }
     return {data: data, digests: claimDigests};

@@ -87,7 +87,7 @@ const validateJws = async (jws: string, jwksJson: jose.JSONWebKeySet | undefined
                 value = (claimsData[name as any] as ClaimData).v;
             }
             if (salt && value && digest) { // TODO: error if you can't
-                const digest2 = crypto.createHash('sha256').update(salt).update(value).digest().subarray(0, 16).toString('base64');
+                const digest2 = jose.base64url.encode(crypto.createHash('sha256').update(salt).update(value).digest().subarray(0, 16));
                 if (digest !== digest2) {
                     throw new Error('Invalid digest for claim ${name}');
                 }

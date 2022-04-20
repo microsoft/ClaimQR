@@ -1,3 +1,5 @@
+**NOTE**: this project is a work in progress.
+
 # Claim QR Codes
 
 It is useful for users to be able to present attribute information, or _claims_ about themselves to various relying parties. This commonly happens in online exchanges, through federated protocols such as SAML and OpenID Connect. The situation is quite different in the real-world, where the claims are typically encoded in physical documents (e.g., driver's licenses, employment badges, etc.) in which various measures are employed to protect the integrity of the documents and to attest to their origin.
@@ -130,13 +132,13 @@ In addition to normal, always-disclosed claims, a set of selectively-disclosable
 1. picks a cryptographically-random 8-byte salt `s`,
 2. calculates the hash digests `d = SHA-256(s,v)`, where the binary `s` is hashed as-is and the string value `v` is hashed as a UTF8 string,
 3. truncates the hash digest by keeping only the first 16 bytes,
-4. encodes the truncated digest to base64,
-5. creates a new property in the `claimDigests` object with name `n` and value matching the resulting base64 digest 
-6. creates a new property in the `claimData` object with name `n` and value `{"s": base64(s), "v": v}` (an object encoding the base64 encoding of the salt and the claim value)
+4. encodes the truncated digest to base64url,
+5. creates a new property in the `claimDigests` object with name `n` and value matching the resulting base64url digest
+6. creates a new property in the `claimData` object with name `n` and value `{"s": base64url(s), "v": v}` (an object encoding the base64url encoding of the salt and the claim value)
 
 The following pseudo-code illustrates the hashing procedure (TODO: more?)
 ```js
-const b64Digest = crypto.createHash('sha256').update(s).update(v).digest().subarray(0, 16).toString('base64');
+const b64Digest = crypto.createHash('sha256').update(s).update(v).digest().subarray(0, 16).toString('base64');+++
 ```
 
 The `claimDigests` object is added to the JWT object with a property key "claimDigests" before being signed (turned into a JWS). The `claimData` object is transformed in a similar manner as the JWT: the issuer
@@ -146,7 +148,10 @@ The `claimDigests` object is added to the JWT object with a property key "claimD
 
 The issuer then creates a JWS-with-appendix by appending the resulting string as a 4th compact JWS part. The JWS-with-appendix (with the form `[HEADER].[PAYLOAD].[SIGNATURE].[CLAIMDATA]`) can then be encoded into a QR code normally. 
 
-To verify a CQR with a claim data appendix, the verifier extracts the 4th part of the JWS-with-appendix, verifies the 3-part JWS normally (outputting a JWT containing a `claimDigests` object), base64url-decodes and decompresses (inflates) the 4th part into a `claimData` object. The verifier then, for each claim `n` with digest `d` (from the `claimDigests` object), salt `s` and value `v` (from the `claimData` object), verifies that `d = base64(SHA-256(s,v)[0..16])` (using the same formatting rules as above).
+To verify a CQR with a claim data appendix, the verifier extracts the 4th part of the JWS-with-appendix, verifies the 3-part JWS normally (outputting a JWT containing a `claimDigests` object), base64url-decodes and decompresses (inflates) the 4th part into a `claimData` object. The verifier then, for each claim `n` with digest `d` (from the `claimDigests` object), salt `s` and value `v` (from the `claimData` object), verifies that `d = base64url(SHA-256(s,v)[0..16])` (using the same formatting rules as above).
+
+**NOTE**: The JWS with appendix could have been replaced with a flattened JSW with unprotected header, but we opted for a minimal approach to avoid the lengthy keywords.
+
 
 ## Glossary
 
@@ -266,7 +271,7 @@ and set of disclosable claims:
     "middle_name": { "s": "Sf0YvpT8iNE=", "v": "Middle" },
     "family_name": { "s": "Cdqx+xckLog=", "v": "Last" },
     "https://example.org/custom": { "s": "1O1EI4SoLPk=", "v": "value" }
-  }
+}
 ```
 
 3. The issuer calculates a `claimDigests` object, and adds it to the JWT
