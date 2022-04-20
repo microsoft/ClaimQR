@@ -138,7 +138,7 @@ In addition to normal, always-disclosed claims, a set of selectively-disclosable
 
 The following pseudo-code illustrates the hashing procedure (TODO: more?)
 ```js
-const b64Digest = crypto.createHash('sha256').update(s).update(v).digest().subarray(0, 16).toString('base64');+++
+const b64Digest = jose.base64encode(crypto.createHash('sha256').update(s).update(v).digest().subarray(0, 16));
 ```
 
 The `claimDigests` object is added to the JWT object with a property key "claimDigests" before being signed (turned into a JWS). The `claimData` object is transformed in a similar manner as the JWT: the issuer
