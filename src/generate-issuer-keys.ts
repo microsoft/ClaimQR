@@ -21,7 +21,7 @@ export const generateIssuerKeys = async (jwks: jose.JSONWebKeySet | undefined): 
         const privateJwk = await jose.exportJWK(privateKey);
         const publicJwk = await jose.exportJWK(publicKey);
         
-        // calculate the key idendifier (kid) thumbprint and add it to the key pair
+        // calculate the key identifier (kid) thumbprint and add it to the key pair
         const kid = await jose.calculateJwkThumbprint(publicJwk,'sha256');
         const addKeyProperty = (jwk: jose.JWK, kid: string) => {
             jwk.kid = kid;
