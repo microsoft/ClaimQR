@@ -7,10 +7,11 @@
     "generate-issuer-keys": "ts-node --files src/generate-issuer-keys-cl.ts",
     "issue-qr": "ts-node --files src/issue-qr-cl.ts",
     "verify-qr": "ts-node --files src/verify-qr-cl.ts",
+    "disclose-claims": "ts-node --files src/disclose-claims-cl.ts",
     "test": "jest --silent"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "commander": "^8.3.0",
     "fs": "*",

@@ -5,26 +5,28 @@ import { Command } from 'commander';
 import { issueQrFiles } from './issue-qr';
 
 interface Options {
-    privatePath: string;
+    privateKeyPath: string;
     jwtPath: string;
-    qrPath: string;
+    claimValuesPath: string;
+    outQrPath: string;
 }
 const DEFAULT_QR_PATH = "qr.png";
 
 // process options
 const program = new Command();
-program.requiredOption('-p, --privatePath <privatePath>', 'path to the issuer signing secret key file');
+program.requiredOption('-k, --privateKeyPath <privateKeyPath>', 'path to the issuer signing secret key file');
 program.requiredOption('-t, --jwtPath <jwtPath>', 'path to the JWT to encode into a QR');
-program.option('-q, --qrPath <qrPath>', 'path to the output QR code');
+program.option('-c, --claimValuesPath <claimValuesPath>', 'path to the input claim values object');
+program.option('-o, --outQrPath <outQrPath>', 'path to the output QR code');
 program.parse(process.argv);
 const options = program.opts() as Options;
-if (!options.qrPath) {
-    options.qrPath = DEFAULT_QR_PATH;
+if (!options.outQrPath) {
+    options.outQrPath = DEFAULT_QR_PATH;
 }
 
 void (async () => {
     try {
-        await issueQrFiles(options.privatePath, options.jwtPath, options.qrPath);
+        await issueQrFiles(options.privateKeyPath, options.jwtPath, options.outQrPath, options.claimValuesPath);
     } catch (err) {
         console.log(err);
     }

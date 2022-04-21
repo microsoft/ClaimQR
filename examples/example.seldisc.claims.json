@@ -1,0 +1,6 @@
+{
+    "given_name": "First",
+    "middle_name": "Middle",
+    "family_name": "Last",
+    "https://example.org/custom": "value"
+}

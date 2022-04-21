@@ -1,41 +1,88 @@
 <html>
     <head>
-        <title>Claim QR Verifier Sample</title>
+        <title>Claim QR Holder Sample</title>
         <script src="utils.js"></script>
         <script src="jsQR.js"></script>
         <script src="qrscanner.js"></script>
     </head>
     <body>
-        <h1>Claim QR Verifier Sample</h1>
+        <h1>Claim QR Holder Sample</h1>
         <p>
-            Verifies Claim QR and extract the encoded JSON Web Token.
+            Selectively-disclose a Claim QR.
         </p>
         <p>
-            Scan a QR code: 
-        <button type="button" onclick="scanQrCode()">Scan QR</button>
+            Scan a QR code:
+            <button type="button" onclick="scanQrCode()">Scan QR</button>
         </p>
         <p>or paste a QR text:</p>
         <textarea id="qrtext" name="qrtext" rows="10" cols="75"></textarea>
+        
         <p>Optionally, paste the verifier JSON Web Key Set (JWKS) (otherwise it will be retrieved online)</p>
         <textarea id="jwks" name="jwks" rows="10" cols="75"></textarea>
         <p>
-        <button type="button" onclick="verifyQr()">Verify QR</button>
+        <button type="button" onclick="verifyQrForSelectiveDisclosure()">Verify QR</button>
         </p>
         <p>Output: encoded JSON Web Token (JWT)</p>
         <textarea id="jwt" name="jwt" rows="1" cols="75" readonly="true"></textarea>
-        
+        <div id="SelectiveDisclosureDIV">
+            <p>Select the claims to disclose</p>
+            <div id="SelectiveDisclosureClaimsDIV" ></div>
+            <p>
+                <button type="button" onclick="regenQr()">Generate QR</button>
+            </p>
+            <img id="updatedqr" name="updatedqr"/>
+        </div>
         <div id="CenterDIV" style="display: none; height: 100%;left: 0;padding-top: 100px;position: fixed;top: 0;width: 100%;">
-            <div class="divFloat" style="text-align:center;">
+            <div class="divFloat" style="text-align: center;">
                 <div id="container" style="position:relative;">
                     <video id='vid'></video>
                 </div>
-                <input type="button" id='buttonCloseVideo' value="Close" display = 'none'/>
+                <input type="button" id='buttonCloseVideo' value="Close" />
             </div>
         </div>
-
         <script>
+            function createSelectiveDisclosureInput(jwt) {
+                if (jwt && jwt.claimDigests) {
+                    const sdDiv = document.getElementById('SelectiveDisclosureClaimsDIV');
+                    Object.keys(jwt.claimDigests).forEach((name, i, array) => {
+                        console.log(name);
+                        var checkbox = document.createElement('input');
+                        checkbox.type = "checkbox";
+                        checkbox.name = "claim" + i;
+                        checkbox.value = name;
+                        checkbox.id = "claim" + i;
+                        var label = document.createElement('label');
+                        var tn = document.createTextNode(name);
+                        label.htmlFor="cbid";
+                        label.appendChild(tn); 
+                        sdDiv.appendChild(checkbox);
+                        sdDiv.appendChild(label);
+                    })
+                }
+            }
 
-            // TODO: share functions below with holder page
+            async function verifyQrForSelectiveDisclosure() {
+                const jwt = await verifyQr();
+                createSelectiveDisclosureInput(jwt);
+            }
+
+            async function regenQr() {
+                const qrtext = document.getElementById('qrtext').value;
+                let claimsDIV = document.getElementById('SelectiveDisclosureClaimsDIV');
+                let checkBoxes = claimsDIV.querySelectorAll('input[type="checkbox"]');
+                let checked = [];
+                checkBoxes.forEach(item => {
+                    if (item.checked) {
+                        checked.push(item.value);
+                    }
+                });
+                console.log(checked);
+                const result = await restCall('/disclose-claims', { "qr": qrtext, "claims": checked }, 'POST');
+                console.log(result);
+                document.getElementById('updatedqr').src = result.qr;
+            }
+
+            // TODO: share functions below with verifier page
             async function verifyQr() {
                 const qrtext = document.getElementById('qrtext').value;
                 let jwks;
@@ -51,6 +98,7 @@
             }
 
             async function scanQrCode() {
+
                 // reveal the qr scanner ui
                 const qrScanDiv = document.getElementById('CenterDIV');
                 qrScanDiv.style.display = 'block';
@@ -84,13 +132,13 @@
                 document.getElementById('qrtext').value = scannedQr;
             }
 
-
             const qrScanner = QrScanner('vid');
             function closeVideo() {
                 // close the scan window if .stop() returns true (Actually stopped something)
                 qrScanner.stop() && (document.getElementById('CenterDIV').style.display = 'none');
             }
             document.getElementById('buttonCloseVideo').onclick = closeVideo;
+
         </script>
     </body>
 </html>

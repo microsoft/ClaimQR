@@ -4,28 +4,25 @@
 import fs from 'fs';
 import * as jose from 'jose';
 import pako from 'pako';
-import QrCode, { QRCodeSegment } from 'qrcode';
+import { QRCodeSegment } from 'qrcode';
+import { createClaimDigestsObject } from './selective-disclosure';
+import { createQrAsBuffer, createQrAsDataURL, jwsToQr } from './qr';
 
-const VERBOSE_OUTPUT = false; // set to true to generate the spec example
+const VERBOSE_OUTPUT = true; // set to true to generate the spec example
 
-const SMALLEST_B64_CHAR_CODE = 45; // "-".charCodeAt(0) === 45
-const toNumericQr = (jws: string): QRCodeSegment[] => [
-  { data: 'cqr:/', mode: 'byte' },
-  {
-    data: jws
-      .split('')
-      .map((c) => c.charCodeAt(0) - SMALLEST_B64_CHAR_CODE)
-      .flatMap((c) => [Math.floor(c / 10), c % 10])
-      .join(''),
-    mode: 'numeric',
-  },
-];
-
-const issueQrAsText = async (jwkJson: jose.JWK, jwt: any): Promise<QRCodeSegment[]> => {
+const issueQrAsText = async (jwkJson: jose.JWK, jwt: any, claimValues: any | undefined): Promise<QRCodeSegment[]> => {
     try {
         const kid = jwkJson.kid;
         if (!kid) {
             throw new Error("JWK doesn't have a kid");
+        }
+
+        let b64claimData: string = '';
+        if (claimValues) {
+            const result = createClaimDigestsObject(claimValues);
+            console.log(result);
+            Object.defineProperty(jwt, "claimDigests", {value: result.digests, enumerable: true});
+            b64claimData = jose.base64url.encode(Buffer.from(pako.deflateRaw(JSON.stringify(result.data))));
         }
 
         const bodyString = JSON.stringify(jwt);
@@ -33,12 +30,15 @@ const issueQrAsText = async (jwkJson: jose.JWK, jwt: any): Promise<QRCodeSegment
         if (VERBOSE_OUTPUT) console.log(Buffer.from(payload).toString("hex").toUpperCase());
 
         const jwk = await jose.importJWK(jwkJson, 'ES256');
-        const jws = await new jose.CompactSign(payload)
+        let jws = await new jose.CompactSign(payload)
         .setProtectedHeader({ alg: 'ES256', zip: 'DEF', kid: kid })
         .sign(jwk);
+        if (b64claimData) {
+            jws = jws.concat('.', b64claimData);
+        }
         if (VERBOSE_OUTPUT) console.log(jws);
 
-        const numericQR = toNumericQr(jws);
+        const numericQR = jwsToQr(jws);
         if (VERBOSE_OUTPUT) console.log(numericQR);
 
         return numericQR;
@@ -47,25 +47,29 @@ const issueQrAsText = async (jwkJson: jose.JWK, jwt: any): Promise<QRCodeSegment
     }
 }
 
-export const issueQrAsBuffer = async (jwkJson: jose.JWK, jwt: any): Promise<Buffer> => {
-    const numericQR = await issueQrAsText(jwkJson, jwt);
-    const qr = await QrCode.toBuffer(numericQR, {type: 'png', errorCorrectionLevel: 'low'});
+export const issueQrAsBuffer = async (jwkJson: jose.JWK, jwt: any, claimValues: any | undefined): Promise<Buffer> => {
+    const qrSegments = await issueQrAsText(jwkJson, jwt, claimValues);
+    const qr = await createQrAsBuffer(qrSegments);
     return qr;
 }
 
-export const issueQrAsDataUrl = async (jwkJson: jose.JWK, jwt: any): Promise<string> => {
-    const numericQR = await issueQrAsText(jwkJson, jwt);
-    const qr = await QrCode.toDataURL(numericQR, { errorCorrectionLevel: 'low' });
+export const issueQrAsDataUrl = async (jwkJson: jose.JWK, jwt: any, claimValues: any | undefined): Promise<string> => {
+    const qrSegments = await issueQrAsText(jwkJson, jwt, claimValues);
+    const qr = await createQrAsDataURL(qrSegments);
     return qr;
 }
 
-export const issueQrFiles = async (privatePath: string, jwtPath: string, qrPath: string): Promise<void> => {
+export const issueQrFiles = async (privatePath: string, jwtPath: string, qrPath: string, claimValuesPath: string | undefined): Promise<void> => {
     console.log(`Issuing QR from the JWT ${jwtPath} using the private key ${privatePath}`);
+    if (claimValuesPath) console.log(`Encoding selectively-disclosable claims from ${claimValuesPath}`);
 
     if (!fs.existsSync(privatePath)) {
         throw new Error("File not found : " + privatePath);
     }
     if (!fs.existsSync(jwtPath)) {
+        throw new Error("File not found : " + jwtPath);
+    }
+    if (claimValuesPath && !fs.existsSync(claimValuesPath)) {
         throw new Error("File not found : " + jwtPath);
     }
 
@@ -77,8 +81,15 @@ export const issueQrFiles = async (privatePath: string, jwtPath: string, qrPath:
     const jwtString = fs.readFileSync(jwtPath, 'utf8');
     const jwt = JSON.parse(jwtString);
 
+    // read the ClaimDigests payload
+    let claimDigests;
+    if (claimValuesPath) {
+        const claimDigestsString = fs.readFileSync(claimValuesPath, 'utf8');
+        claimDigests = JSON.parse(claimDigestsString);
+    }
+
     // issue and write-out QR code
-    const qr = await issueQrAsBuffer(jwkJson, jwt);
+    const qr = await issueQrAsBuffer(jwkJson, jwt, claimDigests);
     fs.writeFileSync(qrPath, qr);
     console.log(`QR code written to ${qrPath}`);
 }
