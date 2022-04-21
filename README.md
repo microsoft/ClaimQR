@@ -136,7 +136,7 @@ In addition to normal, always-disclosed claims, a set of selectively-disclosable
 5. creates a new property in the `claimDigests` object with name `n` and value matching the resulting base64url digest
 6. creates a new property in the `claimData` object with name `n` and value `{"s": base64url(s), "v": v}` (an object encoding the base64url encoding of the salt and the claim value)
 
-The following pseudo-code illustrates the hashing procedure (TODO: more?)
+The following pseudo-code illustrates the hashing procedure
 ```js
 const b64Digest = jose.base64encode(crypto.createHash('sha256').update(s).update(v).digest().subarray(0, 16));
 ```

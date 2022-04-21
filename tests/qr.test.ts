@@ -6,7 +6,7 @@ import * as jose from 'jose';
 import {generateIssuerKeys, generateIssuerKeysFiles} from '../src/generate-issuer-keys';
 import {issueQrAsBuffer, issueQrAsDataUrl, issueQrFiles} from '../src/issue-qr';
 import {verifyQr, verifyQrFiles} from '../src/verify-qr';
-import {discloseClaimsAsBuffer, discloseClaimsAsDataUrl, discloseClaimsFiles} from '../src/disclose-claims';
+import {discloseClaimsFiles} from '../src/disclose-claims';
 
 const fileEqual = (a: string, b: string): boolean => {return fs.readFileSync(a).equals(fs.readFileSync(b))}
 
@@ -18,7 +18,7 @@ test("Generate issuer keys", async () => {
 
 test("Generate issuer keys -- file API", async () => {
     const privateKeyPath = 'tmp/testPrivateKey.json';
-    const jwksPath = 'tmp/testjwks.json'; // TODO: delete after test
+    const jwksPath = 'tmp/testjwks.json';
     await generateIssuerKeysFiles(privateKeyPath, jwksPath);
     expect(fs.existsSync(privateKeyPath)).toBeTruthy();
     expect(fs.existsSync(jwksPath)).toBeTruthy();
@@ -114,7 +114,7 @@ test("Verify QR -- file API w/ offline JWKS", async () => {
 
 test("Test end-to-end", async () => {
     const privateKeyPath = 'tmp/e2eprivate.json';
-    const jwksPath = 'tmp/e2ejwks.json'; // TODO: delete after test
+    const jwksPath = 'tmp/e2ejwks.json';
     const jwtPath = 'tests/test_jwt.json';
     const qrPath = 'tmp/e2eqr.png';
     const outJwtPath = 'tmp/e2eOutJwt.json';
@@ -126,7 +126,7 @@ test("Test end-to-end", async () => {
 
 test("Test end-to-end with selective disclosure", async () => {
     const privateKeyPath = 'tmp/e2eSDprivate.json';
-    const jwksPath = 'tmp/e2eSDjwks.json'; // TODO: delete after test
+    const jwksPath = 'tmp/e2eSDjwks.json';
     const jwtPath = 'tests/test_seldisc_jwt.json';
     const claimsPath = 'tests/test_seldisc_claims.json';
     const qrPath = 'tmp/e2eSDqr.png';
@@ -137,7 +137,6 @@ test("Test end-to-end with selective disclosure", async () => {
     await generateIssuerKeysFiles(privateKeyPath, jwksPath);
     await issueQrFiles(privateKeyPath, jwtPath, qrPath, claimsPath);
     await verifyQrFiles('image', qrPath, outJwtPath, jwksPath);
-//    expect(fileEqual(jwtPath,outJwtPath)).toBeTruthy(); // files won't be the same, because of the disclosed claims
     await discloseClaimsFiles('image', qrPath, claims, selDiscQrPath);
     await verifyQrFiles('image', selDiscQrPath, outUpdatedJwtPath, jwksPath);
     const outUpdatedJwtString = fs.readFileSync(outUpdatedJwtPath, 'utf8');
