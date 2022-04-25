@@ -148,7 +148,7 @@ The `claimDigests` object is added to the JWT object with a property key "claimD
 
 The issuer then creates a JWS-with-appendix by appending the resulting string as a 4th compact JWS part. The JWS-with-appendix (with the form `[HEADER].[PAYLOAD].[SIGNATURE].[CLAIMDATA]`) can then be encoded into a QR code normally. 
 
-To verify a CQR with a claim data appendix, the verifier extracts the 4th part of the JWS-with-appendix, verifies the 3-part JWS normally (outputting a JWT containing a `claimDigests` object), base64url-decodes and decompresses (inflates) the 4th part into a `claimData` object. The verifier then, for each claim `n` with digest `d` (from the `claimDigests` object), salt `s` and value `v` (from the `claimData` object), verifies that `d = base64url(SHA-256(s,v)[0..16])` (using the same formatting rules as above).
+To verify a CQR with a claim data appendix, the verifier extracts the 4th part of the JWS-with-appendix, verifies the 3-part JWS normally (outputting a JWT containing a `claimDigests` object), base64url-decodes and decompresses (inflates) the 4th part into a `claimData` object. The verifier then, for each claim `n` with digest `d` (from the `claimDigests` object), salt `s` and value `v` (from the `claimData` object), verifies that `d = base64url.encode(SHA-256(base64url.decode(s),v)[0..16])` (using the same formatting rules as above).
 
 **NOTE**: The JWS-with-appendix could be replaced with a flattened JWS with unprotected header encoding the claimData `object`, but we opted for a smaller footprint of the compact JWS.
 
