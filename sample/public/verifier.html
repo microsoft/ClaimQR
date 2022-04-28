@@ -14,6 +14,11 @@
             Scan a QR code: 
         <button type="button" onclick="scanQrCode()">Scan QR</button>
         </p>
+        <p>or upload a QR image file:
+            <!-- can also accept="image/gif, image/jpeg, image/png" style="display: none;" -->
+            <input type="file" id="qrfile" accept="image/png" name="qrfile" onchange="loadQrFile(event)">
+            <img id="uploadedqr" name="uploadedqr"/>
+        </p>
         <p>or paste a QR text:</p>
         <textarea id="qrtext" name="qrtext" rows="10" cols="75"></textarea>
         <p>Optionally, paste the verifier JSON Web Key Set (JWKS) (otherwise it will be retrieved online)</p>
@@ -34,6 +39,24 @@
         </div>
 
         <script>
+            function loadQrFile(event) {
+                var image = document.getElementById('uploadedqr');
+                image.src = URL.createObjectURL(event.target.files[0]);
+                image.style.display = 'none';
+                image.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    var context = canvas.getContext('2d');
+                    context.drawImage(image, 0, 0);
+                    const data = context.getImageData(0, 0, image.width, image.height);
+                    const qrtext = jsQR(data.data, data.width, data.height, {inversionAttempts: 'dontInvert'});
+                    if (qrtext) {
+                        document.getElementById('qrtext').value = qrtext.data;
+                    }
+                    console.log(qrtext);
+                };
+            }
 
             // TODO: share functions below with holder page
             async function verifyQr() {
